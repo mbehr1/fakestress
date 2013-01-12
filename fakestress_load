@@ -1,0 +1,7 @@
+#!/bin/sh
+module="fakestress"
+
+# invoke insmod with all arguments we got
+# and use a pathname, as insmod doesn't look in . by default
+/sbin/insmod ./$module.ko $* || exit 1
+
