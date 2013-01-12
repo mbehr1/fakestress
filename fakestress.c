@@ -70,12 +70,19 @@ static void fakestress_exit(void)
 static int __init fakestress_init(void)
 {
 	int retval = 0;
+	unsigned long use_threads = param_num_threads;
 
 	printk( KERN_ALERT "fakestress module_init (HZ=%d) (c) M. Behr, 2013\n", HZ);
 
 	printk( KERN_INFO "fakestress param_num_threads = %lu\n", param_num_threads);
 	printk( KERN_INFO "fakestress param_busy_time_us = %lu\n", param_busy_time_us);
 	printk( KERN_INFO "fakestress param_idle_time_us = %lu\n", param_idle_time_us);
+
+	/* if param_num threads is zero autodetermine based on avail cpu/cores */
+	if (0 == param_num_threads){
+		use_threads = nr_cpu_ids;
+		printk( KERN_INFO "fakestress will use %lu threads\n", use_threads);
+	}
 
 
 //	init_waitqueue_head(&event_master);
