@@ -23,16 +23,17 @@
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
-#include <linux/slab.h> // kmalloc
-#include <linux/errno.h> // for e.g. -ENOMEM, ...
-#include <linux/sched.h> // for TASK_INTERRUPTIBLE
+#include <linux/slab.h> /* for kmalloc */
+#include <linux/errno.h> /* for e.g. -ENOMEM, ... */
+#include <linux/sched.h> /* for TASK_INTERRUPTIBLE */
 #include <linux/time.h>
 #include <linux/delay.h>
 #include <linux/kthread.h>
 #include <linux/spinlock.h>
+
 /*
  * to-do list: (global, for features, enhancements,...
- * todo p2: add statistics on latency after a sleep
+ * todo p2: add statistics on latency after a sleep to determine/understand the remaining system load.
  */
 
 /* module parameter: */
@@ -61,12 +62,13 @@ MODULE_PARM_DESC(param_int_lock_during_busy, "do interrupt lock during busy peri
  * todo bug p2 mb: check how they can be protected vs. changes from /sys/modules/... changes.
  */
 
-struct task_struct **stress_tasks=0;
-unsigned long use_threads=0; /* so many threads are actually created/started */
-atomic_t open_threads;
+/* module global variables: */
 
-// exit function on module unload:
-// used from _init as well in case of errors!
+struct task_struct **stress_tasks=0;
+unsigned long use_threads=0; /* so many threads will actually be created/started */
+atomic_t open_threads; /* so many threads are still running. We wait for 0 at module exit. */
+
+/* exit function called on module unload: */
 
 static void fakestress_exit(void)
 {
@@ -90,9 +92,9 @@ static void fakestress_exit(void)
 	printk( KERN_INFO "fakestress all threads exited.\n");
 }
 
-int stress_fn(void *data);
+int stress_fn(void *data); /* prototype, see implementation later. */
 
-// init function on module load:
+/* init function called on module load: */
 static int __init fakestress_init(void)
 {
 	int retval = 0;
@@ -176,7 +178,6 @@ int stress_fn(void *data){
 	return 0;
 }
 
-// todo p3 define license MODULE_LICENSE("proprietary");
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Matthias Behr");
-MODULE_DESCRIPTION("Driver fakeing system stress on other driver and apps. (patents pending)\n");
+MODULE_DESCRIPTION("Driver fakeing/simulating system stress on other driver and apps. (patents pending)\n");
