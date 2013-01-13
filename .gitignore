@@ -1,0 +1,16 @@
+# 
+# note: don't add files that are generated in specific subdir here. 
+# Add them in that subdir instead.
+#
+# use 'git ls-files -i --exclude-standard'
+# after changing this file to see if there are
+# any tracked files which get ignored after the change.
+
+.*
+!.gitignore
+*.o
+*.ko
+*.mod.c
+Module.symvers
+*.order
+
