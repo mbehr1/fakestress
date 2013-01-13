@@ -41,12 +41,17 @@ static int param_int_lock_during_busy = 0; /* default to off i.e. no int lock wh
 module_param(param_int_lock_during_busy, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(param_int_lock_during_busy, "do interrupt lock during busy period (1 = thread/0, 2 = all threads");
 
-//DEFINE_SEMAPHORE(sem_interchange);
-//DECLARE_WAITQUEUE_HEAD(event_master);
-// wait_queue_head_t event_master;
+/*
+ * we do access the params_ at runtime without any protection (semaphore, atomic,...).
+ * For now we can life with it as the risk of partially written data is low and it doesn't matter
+ * if we miss one change and apply it a loop later (even volatile can't be set as this leads to
+ * macro warnings.
+ * todo bug p2 mb: check how they can be protected vs. changes from /sys/modules/... changes.
+ */
 
 struct task_struct **stress_tasks=0;
 unsigned long use_threads=0; /* so many threads are actually created/started */
+atomic_t open_threads;
 
 // exit function on module unload:
 // used from _init as well in case of errors!
@@ -66,7 +71,11 @@ static void fakestress_exit(void)
 		kfree(stress_tasks);
 		stress_tasks = 0;
 	}
-	/* todo bug p1 mb: do we have to wait for the threads to stop? As we are not using any shared resources we might just exit here already */
+	/* we do have to wait for the threads to stop as we are accessing at least the module parameters which will be invalid afterwards. */
+	while(atomic_read(&open_threads)>0){
+		msleep(2); /* we could use some semaphores, waitqueues,... as well but lets stick to this simple loop */
+	}
+	printk( KERN_INFO "fakestress all threads exited.\n");
 }
 
 int stress_fn(void *data);
@@ -90,6 +99,7 @@ static int __init fakestress_init(void)
 		use_threads = nr_cpu_ids;
 		printk( KERN_INFO "fakestress will use %lu threads\n", use_threads);
 	}
+	atomic_set(&open_threads, 0);
 
 	/* allocate memory for the tasks: */
 	stress_tasks = kmalloc(use_threads * sizeof(struct task_struct *), GFP_KERNEL);
@@ -107,6 +117,7 @@ static int __init fakestress_init(void)
 				printk( KERN_INFO "fakestress/%lu bound to cpu %lu\n", i, i);
 			}
 			/* and start it */
+			atomic_inc(&open_threads);
 			wake_up_process(stress_tasks[i]);
 		}else{
 			printk( KERN_ALERT "fakestress can't create fakestress/%lu", i);
@@ -149,6 +160,7 @@ int stress_fn(void *data){
 		}
 	}
 	printk(KERN_INFO "fakestress/%lu stress_fn exited\n", thread_nr);
+	atomic_dec(&open_threads);
 	return 0;
 }
 
