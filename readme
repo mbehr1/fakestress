@@ -1,6 +1,11 @@
 README for the fakestress driver.
 
 Usage:
+To build the module simply call
+make
+
+;-) (well will be more difficult for cross compilation but in any case quite simple)
+
 To load the module simply call the provided script:
 sudo ./fakestress_load
 or load the module manually.
