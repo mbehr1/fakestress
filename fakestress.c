@@ -21,6 +21,8 @@
  *
  */
 
+#define DRV_VERSION "1.2"
+
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/slab.h> /* for kmalloc */
@@ -30,10 +32,11 @@
 #include <linux/delay.h>
 #include <linux/kthread.h>
 #include <linux/spinlock.h>
+#include <linux/average.h>
 
 /*
  * to-do list: (global, for features, enhancements,...
- * todo p2: add statistics on latency after a sleep to determine/understand the remaining system load.
+ *
  */
 
 /* module parameter: */
@@ -53,6 +56,10 @@ MODULE_PARM_DESC(param_idle_time_us, "idle time in us.");
 static int param_int_lock_during_busy = 0; /* default to off i.e. no int lock while busy looping */
 module_param(param_int_lock_during_busy, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(param_int_lock_during_busy, "do interrupt lock during busy period (1 = thread/0, 2 = all threads");
+
+static int param_int_measure_latency = 0; /* default to off, i.e. no time measuring of the latency */
+module_param(param_int_measure_latency, int, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(param_int_measure_latency, "do latency measuring (1 = on, >=2 = reset stats for thread n-2, default(0) = off");
 
 /*
  * we do access the params_ at runtime without any protection (semaphore, atomic,...).
@@ -101,12 +108,13 @@ static int __init fakestress_init(void)
 	unsigned long i;
 	use_threads = param_num_threads;
 
-	printk( KERN_ALERT "fakestress module_init (HZ=%d) (c) M. Behr, 2013\n", HZ);
+	printk( KERN_ALERT "fakestress module_init (HZ=%d) (V" DRV_VERSION ") (c) M. Behr, 2013\n", HZ);
 
 	printk( KERN_INFO "fakestress param_num_threads = %lu\n", param_num_threads);
 	printk( KERN_INFO "fakestress param_busy_time_us = %lu\n", param_busy_time_us);
 	printk( KERN_INFO "fakestress param_idle_time_us = %lu\n", param_idle_time_us);
 	printk( KERN_INFO "fakestress param_int_lock_during_busy = %d\n", param_int_lock_during_busy);
+	printk( KERN_INFO "fakestress param_int_measure_latency = %d\n", param_int_measure_latency);
 
 	/* if param_num threads is zero autodetermine based on avail cpu/cores */
 	if (0 == param_num_threads){
@@ -151,13 +159,60 @@ int stress_fn(void *data){
 	static to the function but we don't use it for synchronization
 	but just to lock the irqs */
 
+	unsigned long latency_us_min = 0xffffffff;
+	unsigned long latency_us_max = 0;
+	struct ewma latency_us_avg;
+#define EWMA_LAT_WEIGHT 1024
+#define EWMA_LAT_FACTOR 8
+	unsigned long latency_j_last_print = jiffies;
+
+	struct timeval t_before, t_after;
+
 	printk(KERN_INFO "fakestress/%lu stress_fn started\n", thread_nr);
+
+	ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR); /* init the exponential weighted average */
+
 	while(!kthread_should_stop()){
 		int do_int_lock = (2 == param_int_lock_during_busy) || (1 == param_int_lock_during_busy && 0 == thread_nr);
 		/* param = 1 --> int lock only on cpu 0, param = 2 --> int lock an all cpus */
+		int measure_latency = param_int_measure_latency;
+		/* 0 == off, 1 == on, 2 == reset counters from thread (-2 + param) */
+		if (measure_latency == (thread_nr+2)){
+			/* reset counters to zero. */
+			printk(KERN_INFO "fakestress/%lu reset stats", thread_nr);
+			printk(KERN_INFO "fakestress/%lu latency [us]: min=%lu, max=%lu, avg(ewma)=%lu\n", thread_nr,
+					latency_us_min, latency_us_max, ewma_read(&latency_us_avg));
+			latency_us_min = 0xffffffff;
+			latency_us_max = 0;
+			ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR);
+			param_int_measure_latency=1; /* auto reset param to "on" */
+		}
 		/* loop idle */
+		if (measure_latency){
+			do_gettimeofday(&t_before);
+		}
 		if (param_idle_time_us>0)
 			msleep(param_idle_time_us / 1000);
+		if (measure_latency){
+			unsigned long lat_us;
+			do_gettimeofday(&t_after);
+			lat_us = (t_after.tv_sec - t_before.tv_sec)*1000000ul +
+					(t_after.tv_usec - t_before.tv_usec);
+			if (lat_us < latency_us_min){
+				latency_us_min = lat_us;
+			}
+			if (lat_us > latency_us_max){
+				latency_us_max = lat_us;
+			}
+			ewma_add(&latency_us_avg, lat_us);
+			/* print stat every 2s */
+			if (time_after(jiffies, latency_j_last_print + (2*HZ))){
+				latency_j_last_print = jiffies;
+				printk(KERN_INFO "fakestress/%lu latency [us]: min=%lu, max=%lu, avg(ewma)=%lu\n", thread_nr,
+						latency_us_min, latency_us_max, ewma_read(&latency_us_avg));
+			}
+		}
+
 		/* loop badly -> create stress, i.e. cpu load */
 		if (param_busy_time_us>0){
 			unsigned long flags;
@@ -179,5 +234,6 @@ int stress_fn(void *data){
 }
 
 MODULE_LICENSE("GPL v2");
+MODULE_VERSION(DRV_VERSION);
 MODULE_AUTHOR("Matthias Behr");
 MODULE_DESCRIPTION("Driver fakeing/simulating system stress on other driver and apps. (patents pending)\n");

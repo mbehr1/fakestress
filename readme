@@ -21,7 +21,7 @@ or at runtime using the /sys/module/fakestress/parameters/ interface.
 E.g. to enable interrupt locks on all cpus (using spinlock_irqsave) do as root:
 echo -n 2 > /sys/module/fakestress/parameters/param_int_lock_during_busy
 
-Currently there are 4 parameters:
+Currently there are 5 parameters:
 param_num_threads: number of kernel threads to use. Defaults to 0 = autodetect, i.e. same as number of cpus.
  With the 0 the threads will be bound to a cpu (/0 to cpu 0, /1 to cpu 1,...). If a value is given threads
  will not be bound.
@@ -34,5 +34,10 @@ param_idle_time_us: idle time in usecs. Defaults to 1ms. Is using msleep(value/1
 param_int_lock_during_busy: do interrupt lock during busy period. Default to 0 (off), 1 = do lock on thread/0. 2 = do on all threads.
  This uses a spinlock_irqsave/restore around the busy looping on none, thread/0 or all threads.
 
-Matthias Behr, January 13th 2013.
+param_int_measure_latency: measure the latency in microseconds (us) of the idle loop. The time is measured including
+ the time of the msleep. Prints the min, max and avg (based on ewma 1024 8) values every 2 seconds.
+ Default to 0 (off), 1 = do measurement on all threads. >=2 reset the statistics of thread <id-2>.
+ 
+
+Matthias Behr, January 13th 2013 (last update February 1st 2013). 
  
