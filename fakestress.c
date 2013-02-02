@@ -21,7 +21,7 @@
  *
  */
 
-#define DRV_VERSION "1.2"
+#define DRV_VERSION "1.2.1"
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -57,9 +57,9 @@ static int param_int_lock_during_busy = 0; /* default to off i.e. no int lock wh
 module_param(param_int_lock_during_busy, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(param_int_lock_during_busy, "do interrupt lock during busy period (1 = thread/0, 2 = all threads");
 
-static int param_int_measure_latency = 0; /* default to off, i.e. no time measuring of the latency */
-module_param(param_int_measure_latency, int, S_IRUGO|S_IWUSR);
-MODULE_PARM_DESC(param_int_measure_latency, "do latency measuring (1 = on, >=2 = reset stats for thread n-2, default(0) = off");
+static int param_measure_latency = 0; /* default to off, i.e. no time measuring of the latency */
+module_param(param_measure_latency, int, S_IRUGO|S_IWUSR);
+MODULE_PARM_DESC(param_measure_latency, "do latency measuring (1 = on, >=2 = reset stats for thread n-2, default(0) = off");
 
 /*
  * we do access the params_ at runtime without any protection (semaphore, atomic,...).
@@ -114,7 +114,7 @@ static int __init fakestress_init(void)
 	printk( KERN_INFO "fakestress param_busy_time_us = %lu\n", param_busy_time_us);
 	printk( KERN_INFO "fakestress param_idle_time_us = %lu\n", param_idle_time_us);
 	printk( KERN_INFO "fakestress param_int_lock_during_busy = %d\n", param_int_lock_during_busy);
-	printk( KERN_INFO "fakestress param_int_measure_latency = %d\n", param_int_measure_latency);
+	printk( KERN_INFO "fakestress param_measure_latency = %d\n", param_measure_latency);
 
 	/* if param_num threads is zero autodetermine based on avail cpu/cores */
 	if (0 == param_num_threads){
@@ -175,7 +175,7 @@ int stress_fn(void *data){
 	while(!kthread_should_stop()){
 		int do_int_lock = (2 == param_int_lock_during_busy) || (1 == param_int_lock_during_busy && 0 == thread_nr);
 		/* param = 1 --> int lock only on cpu 0, param = 2 --> int lock an all cpus */
-		int measure_latency = param_int_measure_latency;
+		int measure_latency = param_measure_latency;
 		/* 0 == off, 1 == on, 2 == reset counters from thread (-2 + param) */
 		if (measure_latency == (thread_nr+2)){
 			/* reset counters to zero. */
@@ -185,7 +185,7 @@ int stress_fn(void *data){
 			latency_us_min = 0xffffffff;
 			latency_us_max = 0;
 			ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR);
-			param_int_measure_latency=1; /* auto reset param to "on" */
+			param_measure_latency=1; /* auto reset param to "on" */
 		}
 		/* loop idle */
 		if (measure_latency){

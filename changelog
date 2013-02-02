@@ -1,5 +1,7 @@
 changelog for fakestress
 
+02.02.2013 M.Behr V1.2.1: changed name of parameter param_int_measure_latency to param_measure_latency for consistency reasons only.
+
 01.02.2013 M.Behr V1.2: added measurement of latency of idle loop (param_int_measure_latency).
 
 13.01.2013 M.Behr initial version
