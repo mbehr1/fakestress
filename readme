@@ -34,8 +34,8 @@ param_idle_time_us: idle time in usecs. Defaults to 1ms. Is using msleep(value/1
 param_int_lock_during_busy: do interrupt lock during busy period. Default to 0 (off), 1 = do lock on thread/0. 2 = do on all threads.
  This uses a spinlock_irqsave/restore around the busy looping on none, thread/0 or all threads.
 
-param_measure_latency: measure the latency in microseconds (us) of the idle loop. The time is measured including
- the time of the msleep. Prints the min, max and avg (based on ewma 1024 8) values every 2 seconds.
+param_measure_latency: measure the latency in microseconds (us) of the idle loop. The time is measured without
+ the time of the msleep. Prints the min, max and avg (based on ewma 1024 8) and distribution per 1/2HZ values every 2 seconds.
  Default to 0 (off), 1 = do measurement on all threads. >=2 reset the statistics of thread <id-2>.
  
 

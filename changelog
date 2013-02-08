@@ -1,4 +1,6 @@
 changelog for fakestress
+08.02.2013 M.Behr V1.3.1: changed latency to be without param_idle_time_us (i.e. on top of idle time). added latency distribution printout.
+
 08.02.2013 M.Behr V1.2.2: included code from lib/ewma as this seems to be missing in some compiled kernels
 
 02.02.2013 M.Behr V1.2.1: changed name of parameter param_int_measure_latency to param_measure_latency for consistency reasons only.

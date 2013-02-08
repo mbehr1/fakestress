@@ -21,7 +21,7 @@
  *
  */
 
-#define DRV_VERSION "1.2.2"
+#define DRV_VERSION "1.3.1"
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -161,6 +161,25 @@ static int __init fakestress_init(void)
 module_init( fakestress_init );
 module_exit( fakestress_exit );
 
+/*
+ * update an array of given size with a distribution based on imax
+ * i.e. an [0,imax), [imax,2imax), [2imax, 2imax), ..., [(size-1)*imax, inf)
+ */
+
+void update_lat_pH(unsigned long *arr, int size, const unsigned long imax, unsigned long val)
+{
+	unsigned long max=imax;
+	int i;
+	for (i=0; i<size; i++){
+		if (val<max){
+			++arr[i];
+			return;
+		}
+		max+=imax;
+	}
+	++arr[size-1];
+}
+
 int stress_fn(void *data){
 	unsigned long thread_nr = (unsigned long) data;
 	static DEFINE_SPINLOCK(lock); /* we define the spinlock
@@ -169,16 +188,19 @@ int stress_fn(void *data){
 
 	unsigned long latency_us_min = 0xffffffff;
 	unsigned long latency_us_max = 0;
+	unsigned long latency_per_half_HZ[7];
 	struct ewma latency_us_avg;
 #define EWMA_LAT_WEIGHT 1024
 #define EWMA_LAT_FACTOR 8
 	unsigned long latency_j_last_print = jiffies;
 
 	struct timeval t_before, t_after;
+	const unsigned long half_HZ_us = (500000/HZ) == 0 ? 1 : (500000/HZ);
 
 	printk(KERN_INFO "fakestress/%lu stress_fn started\n", thread_nr);
 
 	my_ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR); /* init the exponential weighted average */
+	memset(latency_per_half_HZ, 0, sizeof(latency_per_half_HZ));
 
 	while(!kthread_should_stop()){
 		int do_int_lock = (2 == param_int_lock_during_busy) || (1 == param_int_lock_during_busy && 0 == thread_nr);
@@ -188,11 +210,14 @@ int stress_fn(void *data){
 		if (measure_latency == (thread_nr+2)){
 			/* reset counters to zero. */
 			printk(KERN_INFO "fakestress/%lu reset stats", thread_nr);
-			printk(KERN_INFO "fakestress/%lu latency [us]: min=%lu, max=%lu, avg(ewma)=%lu\n", thread_nr,
-					latency_us_min, latency_us_max, ewma_read(&latency_us_avg));
+			printk(KERN_INFO "fakestress/%lu latency [us]:min=%lu, max=%lu, av=%lu, distr per %luus: %lu, %lu, %lu, %lu, %lu, %lu %lu", thread_nr,
+					latency_us_min, latency_us_max, ewma_read(&latency_us_avg), half_HZ_us,
+					latency_per_half_HZ[0], latency_per_half_HZ[1], latency_per_half_HZ[2], latency_per_half_HZ[3], latency_per_half_HZ[4], latency_per_half_HZ[5],
+					latency_per_half_HZ[6]);
 			latency_us_min = 0xffffffff;
 			latency_us_max = 0;
 			my_ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR);
+			memset(latency_per_half_HZ, 0, sizeof(latency_per_half_HZ));
 			param_measure_latency=1; /* auto reset param to "on" */
 		}
 		/* loop idle */
@@ -206,6 +231,9 @@ int stress_fn(void *data){
 			do_gettimeofday(&t_after);
 			lat_us = (t_after.tv_sec - t_before.tv_sec)*1000000ul +
 					(t_after.tv_usec - t_before.tv_usec);
+			if (lat_us<param_idle_time_us) lat_us = 0;
+			else lat_us -= param_idle_time_us;
+
 			if (lat_us < latency_us_min){
 				latency_us_min = lat_us;
 			}
@@ -213,11 +241,14 @@ int stress_fn(void *data){
 				latency_us_max = lat_us;
 			}
 			my_ewma_add(&latency_us_avg, lat_us);
+			update_lat_pH(latency_per_half_HZ, sizeof(latency_per_half_HZ)/sizeof(*latency_per_half_HZ), half_HZ_us, lat_us);
 			/* print stat every 2s */
 			if (time_after(jiffies, latency_j_last_print + (2*HZ))){
 				latency_j_last_print = jiffies;
-				printk(KERN_INFO "fakestress/%lu latency [us]: min=%lu, max=%lu, avg(ewma)=%lu\n", thread_nr,
-						latency_us_min, latency_us_max, ewma_read(&latency_us_avg));
+				printk(KERN_INFO "fakestress/%lu latency [us]:min=%lu, max=%lu, av=%lu, distr per %luus: %lu, %lu, %lu, %lu, %lu, %lu, %lu", thread_nr,
+						latency_us_min, latency_us_max, ewma_read(&latency_us_avg), half_HZ_us,
+						latency_per_half_HZ[0], latency_per_half_HZ[1], latency_per_half_HZ[2], latency_per_half_HZ[3], latency_per_half_HZ[4], latency_per_half_HZ[5],
+						latency_per_half_HZ[6]);
 			}
 		}
 
