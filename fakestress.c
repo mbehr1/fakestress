@@ -21,7 +21,7 @@
  *
  */
 
-#define DRV_VERSION "1.2.1"
+#define DRV_VERSION "1.2.2"
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -74,6 +74,14 @@ MODULE_PARM_DESC(param_measure_latency, "do latency measuring (1 = on, >=2 = res
 struct task_struct **stress_tasks=0;
 unsigned long use_threads=0; /* so many threads will actually be created/started */
 atomic_t open_threads; /* so many threads are still running. We wait for 0 at module exit. */
+
+
+/* copied the functions from Linux/lib/average.c (GPL v2 as well) to here as
+ * some kernels doesn't seem to contain them and would need a recompile which
+ * I want to avoid.
+ */
+void my_ewma_init(struct ewma *avg, unsigned long factor, unsigned long weight);
+struct ewma *my_ewma_add(struct ewma *avg, unsigned long val);
 
 /* exit function called on module unload: */
 
@@ -170,7 +178,7 @@ int stress_fn(void *data){
 
 	printk(KERN_INFO "fakestress/%lu stress_fn started\n", thread_nr);
 
-	ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR); /* init the exponential weighted average */
+	my_ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR); /* init the exponential weighted average */
 
 	while(!kthread_should_stop()){
 		int do_int_lock = (2 == param_int_lock_during_busy) || (1 == param_int_lock_during_busy && 0 == thread_nr);
@@ -184,7 +192,7 @@ int stress_fn(void *data){
 					latency_us_min, latency_us_max, ewma_read(&latency_us_avg));
 			latency_us_min = 0xffffffff;
 			latency_us_max = 0;
-			ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR);
+			my_ewma_init(&latency_us_avg, EWMA_LAT_WEIGHT, EWMA_LAT_FACTOR);
 			param_measure_latency=1; /* auto reset param to "on" */
 		}
 		/* loop idle */
@@ -204,7 +212,7 @@ int stress_fn(void *data){
 			if (lat_us > latency_us_max){
 				latency_us_max = lat_us;
 			}
-			ewma_add(&latency_us_avg, lat_us);
+			my_ewma_add(&latency_us_avg, lat_us);
 			/* print stat every 2s */
 			if (time_after(jiffies, latency_j_last_print + (2*HZ))){
 				latency_j_last_print = jiffies;
@@ -231,6 +239,43 @@ int stress_fn(void *data){
 	printk(KERN_INFO "fakestress/%lu stress_fn exited\n", thread_nr);
 	atomic_dec(&open_threads);
 	return 0;
+}
+
+/**
+ * ewma_init() - Initialize EWMA parameters
+ * @avg: Average structure
+ * @factor: Factor to use for the scaled up internal value. The maximum value
+ *      of averages can be ULONG_MAX/(factor*weight). For performance reasons
+ *      factor has to be a power of 2.
+ * @weight: Exponential weight, or decay rate. This defines how fast the
+ *      influence of older values decreases. For performance reasons weight has
+ *      to be a power of 2.
+ *
+ * Initialize the EWMA parameters for a given struct ewma @avg.
+ */
+void my_ewma_init(struct ewma *avg, unsigned long factor, unsigned long weight)
+{
+	WARN_ON(!is_power_of_2(weight) || !is_power_of_2(factor));
+
+	avg->weight = ilog2(weight);
+	avg->factor = ilog2(factor);
+	avg->internal = 0;
+}
+
+/**
+ * ewma_add() - Exponentially weighted moving average (EWMA)
+ * @avg: Average structure
+ * @val: Current value
+ *
+ * Add a sample to the average.
+ */
+struct ewma *my_ewma_add(struct ewma *avg, unsigned long val)
+{
+	avg->internal = avg->internal  ?
+			(((avg->internal << avg->weight) - avg->internal) +
+					(val << avg->factor)) >> avg->weight :
+					(val << avg->factor);
+	return avg;
 }
 
 MODULE_LICENSE("GPL v2");
