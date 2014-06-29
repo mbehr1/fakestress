@@ -45,13 +45,13 @@ Currently there are 5 parameters:
 
 - param_int_lock_during_busy: do interrupt lock during busy period. 
 
-value | behaviour
------ | ---------
-0 (default) | off (no interrupt locks)
-1 | enable interrupt locks on thread/0
-2 | enable interrupt locks on all threads
+  value | behaviour
+  ----- | ---------
+  0 (default) | off (no interrupt locks)
+  1 | enable interrupt locks on thread/0
+  2 | enable interrupt locks on all threads
 
- This uses a spinlock_irqsave/restore around the busy looping on none, thread/0 or all threads.
+  This uses a spinlock_irqsave/restore around the busy looping on none, thread/0 or all threads.
 
 - param_measure_latency: measure the latency in microseconds (us) of the idle loop. The time is measured without
  the time of the msleep. Prints the min, max and avg (based on ewma 1024 8) and distribution per 1/2HZ values every 2 seconds.
