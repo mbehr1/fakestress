@@ -30,6 +30,7 @@ either at module startup (e.g. `insmod fakestress param_x=y param_y=w`)
 or at runtime using the `/sys/module/fakestress/parameters/` interface.
 
 E.g. to enable interrupt locks on all cpus (using spinlock_irqsave) do as root:
+
 `echo -n 2 > /sys/module/fakestress/parameters/param_int_lock_during_busy`
 
 Currently there are 5 parameters:
