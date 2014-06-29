@@ -58,5 +58,5 @@ Currently there are 5 parameters:
  Default to 0 (off), 1 = do measurement on all threads. >=2 reset the statistics of thread <id-2>.
  
 
-Matthias Behr, January 13th 2013 (last update February 2nd 2013). 
+Matthias Behr, January 13th 2013 (last update June 29th 2014). 
  
