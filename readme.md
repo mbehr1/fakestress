@@ -1,6 +1,10 @@
+[![Build Status](https://travis-ci.org/mbehr1/fakestress.svg?branch=master)](https://travis-ci.org/mbehr1/fakestress)
+
 README for the fakestress driver.
+=================================
 
 Usage:
+------
 To build the module simply call
 make
 
@@ -15,6 +19,7 @@ sudo ./fakestress_unload
 or unload the module manually.
 
 Module parameters:
+------------------
 The behaviour of the kernel module can be adjusted by setting the following parameters
 either at module startup (e.g. insmod fakestress param_x=y param_y=w)
 or at runtime using the /sys/module/fakestress/parameters/ interface.
