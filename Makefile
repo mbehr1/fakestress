@@ -6,8 +6,10 @@ obj-m := fakestress.o
 #otherwise we're called e.g. from the command
 # line; invoke the kernel build system.
 else
-
-	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+ifeq ($(BUILD_KERNEL_VERSION),)
+	BUILD_KERNEL_VERSION := $(shell uname -r)
+endif
+	KERNELDIR ?= /lib/modules/$(BUILD_KERNEL_VERSION)/build
 	PWD := $(shell pwd)
 	
 default:

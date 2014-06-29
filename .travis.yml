@@ -1,0 +1,22 @@
+language: c
+
+compiler: 
+    - gcc
+
+env:
+  - KERNEL_VERSION=3.2.0-64-generic
+  - KERNEL_VERSION=3.5.0-51-generic
+  - KERNEL_VERSION=3.8.0-42-generic
+  - KERNEL_VERSION=3.11.0-23-generic
+  - KERNEL_VERSION=3.13.0-29-generic
+
+notifications:
+    mail: "mbehr@mcbehr.de"
+
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y linux-headers-$KERNEL_VERSION
+
+script:
+  - make BUILD_KERNEL_VERSION=$KERNEL_VERSION
+
