@@ -6,23 +6,29 @@ README for the fakestress driver.
 Usage:
 ------
 To build the module simply call
+
 `make`
 
 ;-) (well will be more difficult for cross compilation but in any case quite simple)
 
 To load the module simply call the provided script:
+
 `sudo ./fakestress_load`
+
 or load the module manually.
 
 To unload the module simply call the provided script:
+
 `sudo ./fakestress_unload`
+
 or unload the module manually.
 
 Module parameters:
 ------------------
 The behaviour of the kernel module can be adjusted by setting the following parameters
-either at module startup (e.g. insmod fakestress param_x=y param_y=w)
-or at runtime using the /sys/module/fakestress/parameters/ interface.
+either at module startup (e.g. `insmod fakestress param_x=y param_y=w`)
+or at runtime using the `/sys/module/fakestress/parameters/` interface.
+
 E.g. to enable interrupt locks on all cpus (using spinlock_irqsave) do as root:
 `echo -n 2 > /sys/module/fakestress/parameters/param_int_lock_during_busy`
 
