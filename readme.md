@@ -44,6 +44,7 @@ Currently there are 5 parameters:
  used so this will most likely completely hang your system at least if used on all cpus.
 
 - param_int_lock_during_busy: do interrupt lock during busy period. 
+
 value | behaviour
 ----- | ---------
 0 (default) | off (no interrupt locks)
