@@ -43,7 +43,13 @@ Currently there are 5 parameters:
 - param_idle_time_us: idle time in usecs. Defaults to 1ms. Is using msleep(value/1000). If set to 0 no mdelay is
  used so this will most likely completely hang your system at least if used on all cpus.
 
-- param_int_lock_during_busy: do interrupt lock during busy period. Default to 0 (off), 1 = do lock on thread/0. 2 = do on all threads.
+- param_int_lock_during_busy: do interrupt lock during busy period. 
+value | behaviour
+----- | ---------
+0 (default) | off (no interrupt locks)
+1 | enable interrupt locks on thread/0
+2 | enable interrupt locks on all threads
+
  This uses a spinlock_irqsave/restore around the busy looping on none, thread/0 or all threads.
 
 - param_measure_latency: measure the latency in microseconds (us) of the idle loop. The time is measured without
