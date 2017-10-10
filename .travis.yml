@@ -4,7 +4,6 @@ compiler:
     - gcc
 
 env:
-  - KERNEL_VERSION=3.13.0-29-generic
   - KERNEL_VERSION=4.4.0-78-generic
 
 notifications:
