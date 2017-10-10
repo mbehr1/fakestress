@@ -4,11 +4,8 @@ compiler:
     - gcc
 
 env:
-  - KERNEL_VERSION=3.2.0-64-generic
-  - KERNEL_VERSION=3.5.0-51-generic
-  - KERNEL_VERSION=3.8.0-42-generic
-  - KERNEL_VERSION=3.11.0-23-generic
   - KERNEL_VERSION=3.13.0-29-generic
+  - KERNEL_VERSION=4.10.0-33-generic
 
 notifications:
     mail: "mbehr@mcbehr.de"
