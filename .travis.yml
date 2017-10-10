@@ -5,8 +5,7 @@ compiler:
 
 env:
   - KERNEL_VERSION=3.13.0-29-generic
-  - KERNEL_VESION=4.4.0-21-generic
-  - KERNEL_VERSION=4.10.0-33-generic
+  - KERNEL_VERSION=4.4.0-78-generic
 
 notifications:
     mail: "mbehr@mcbehr.de"
