@@ -1,5 +1,5 @@
 changelog for fakestress
-10.10.2017 M.Behr V1.4: removed old 3.x kernel support. Removed code from lib/ewma. Compile tested under kernels 4.4 and 4.10.
+10.10.2017 M.Behr V1.4.1: removed old 3.x kernel support. Removed code from lib/ewma. Compile tested under kernels 4.4 and 4.10.
 
 08.02.2013 M.Behr V1.3.1: changed latency to be without param_idle_time_us (i.e. on top of idle time). added latency distribution printout.
 

@@ -21,7 +21,7 @@
  *
  */
 
-#define DRV_VERSION "1.3.1"
+#define DRV_VERSION "1.4.1"
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
